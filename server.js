@@ -11,9 +11,8 @@ const app = express();
 // ================================
 // MIDDLEWARE
 // ================================
-// Use CORS middleware to handle preflight requests automatically
-app.use(cors());   
-app.use(express.json()); // Parse JSON requests
+app.use(cors());
+app.use(express.json());
 
 // ================================
 // STATIC FILES
@@ -21,23 +20,26 @@ app.use(express.json()); // Parse JSON requests
 app.use("/images", express.static(path.join(__dirname, "images")));
 
 // ================================
-// ROUTES
-// ================================
-// Prefix all routes with /api/v1/products for clarity
-app.use("/api/v1/products", productRoutes);
-
-// ================================
-// DATABASE CONNECTION
+// DATABASE CONNECTION (🔥 FIRST)
 // ================================
 mongoose
   .connect(process.env.MONGO_URL)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log("DB Error:", err));
+  .then(() => {
+    console.log("✅ MongoDB Connected");
 
-// ================================
-// START SERVER
-// ================================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+    // ================================
+    // ROUTES (🔥 ONLY AFTER DB CONNECTS)
+    // ================================
+    app.use("/api/v1/products", productRoutes);
+
+    // ================================
+    // START SERVER
+    // ================================
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB Connection Failed:", err);
+  });
