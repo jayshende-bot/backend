@@ -5,8 +5,8 @@ const mongoose = require("mongoose");
 // ==========================
 const vegSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  des: String,
-  price: Number,
+  description: String, // renamed 'des' → 'description' for consistency
+  price: { type: Number, required: true },
   image: String
 }, { timestamps: true });
 
@@ -17,50 +17,47 @@ const Veg = mongoose.model("Veg", vegSchema, "vegproducts");
 // ==========================
 const nonvegSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  des: String,
-  price: Number,
+  description: String, // renamed 'des' → 'description'
+  price: { type: Number, required: true },
   image: String
 }, { timestamps: true });
 
 const Nonveg = mongoose.model("Nonveg", nonvegSchema, "nonvegproducts");
 
 // ==========================
-// DRINK / MILK PRODUCTS
+// DRINK PRODUCTS
 // ==========================
-const drinkSchema = new mongoose.Schema({ // Renamed schema variable for clarity
- name: { type: String, required: true },
-  description: { type: String },
-  price: { type: Number },
-  img: { type: String }
-}, { timestamps: true, strict: true });
+const drinkSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: String,
+  price: { type: Number, required: true },
+  image: String
+}, { timestamps: true });
 
-// ✅ CHANGED: Renamed model variable from 'Milk' to 'Drink'
-const Drink = mongoose.model("Drink", drinkSchema, "drinkproducts"); 
+const Drink = mongoose.model("Drink", drinkSchema, "drinkproducts");
 
 // ==========================
 // ORDER SCHEMA
 // ==========================
-const OrderSchema = new mongoose.Schema({
+const orderSchema = new mongoose.Schema({
   email: { type: String, required: true },
-
   items: [
     {
       id: { type: String, required: true },
-      name: String,
-      price: Number,
+      name: { type: String, required: true },
+      price: { type: Number, required: true },
       quantity: { type: Number, default: 1 },
       image: String
     }
   ],
-
-  subtotal: Number,
+  subtotal: { type: Number, required: true },
   totalDiscount: { type: Number, default: 0 },
   gst: { type: Number, default: 0 },
-  finalTotal: Number,
+  finalTotal: { type: Number, required: true },
   date: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 
-const Order = mongoose.model("Order", OrderSchema, "orders");
+const Order = mongoose.model("Order", orderSchema, "orders");
 
 // ==========================
 // EXPORT MODELS
@@ -68,7 +65,6 @@ const Order = mongoose.model("Order", OrderSchema, "orders");
 module.exports = {
   Veg,
   Nonveg,
-  // ✅ CHANGED: Exporting 'Drink' instead of 'Milk'
   Drink,
   Order
 };

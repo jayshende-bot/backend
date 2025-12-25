@@ -3,10 +3,20 @@ const jwt = require("jsonwebtoken");
 
 // Middleware to protect routes
 const authMiddleware = (req, res, next) => {
+
+  // ================================
+  // 🔓 ALLOW PUBLIC PRODUCT ROUTES
+  // ================================
+  const publicRoutes = ["/veg", "/nonveg", "/drink"];
+
+  if (publicRoutes.some(route => req.originalUrl.includes(route))) {
+    return next(); // skip auth
+  }
+
   try {
     // 1. Check if token exists in authorization header
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         status: false,
         message: "Authorization token missing",
@@ -23,7 +33,7 @@ const authMiddleware = (req, res, next) => {
     }
 
     // 3. Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // ensure JWT_SECRET is in your .env
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 4. Store decoded data in request object
     req.user = decoded;
