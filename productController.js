@@ -1,5 +1,7 @@
 
 
+
+
 // const ProductService = require("./ProductService");
 // const User = require("./userSchema");
 // const bcrypt = require("bcryptjs");
@@ -69,6 +71,11 @@
 
 //   static async saveOne(req, res) {
 //     try {
+//       // ❌ Prevent saving orders via saveOne
+//       if (req.params.type === "order") {
+//         return res.status(400).json({ success: false, message: "Orders must be created using createOrder() API" });
+//       }
+
 //       const result = await ProductService.saveOne(req.params.type, req.body);
 //       res.status(201).json({ success: true, data: result });
 //     } catch (error) {
@@ -79,6 +86,11 @@
 
 //   static async saveAll(req, res) {
 //     try {
+//       // ❌ Prevent saving orders via saveAll
+//       if (req.params.type === "order") {
+//         return res.status(400).json({ success: false, message: "Orders must be created using createOrder() API" });
+//       }
+
 //       const result = await ProductService.saveAll(req.params.type, req.body);
 //       res.status(201).json({ success: true, data: result });
 //     } catch (error) {
@@ -108,15 +120,43 @@
 //   }
 
 //   // ================= ORDERS =================
+//   // static async createOrder(req, res) {
+//   //   try {
+//   //     const order = await ProductService.createOrder(req.body);
+//   //     res.status(201).json({ success: true, message: "Order placed successfully", data: order });
+//   //   } catch (error) {
+//   //     console.error("Create Order Error:", error);
+//   //     res.status(500).json({ success: false, message: error.message });
+//   //   }
+//   // }
+
+
+
 //   static async createOrder(req, res) {
-//     try {
-//       const order = await ProductService.createOrder(req.body);
-//       res.status(201).json({ success: true, message: "Order placed successfully", data: order });
-//     } catch (error) {
-//       console.error("Create Order Error:", error);
-//       res.status(500).json({ success: false, message: error.message });
+//   try {
+//     // 🧪 DEBUG: log incoming request
+//     console.log("REQ BODY:", req.body);
+
+//     const { email, items } = req.body;
+
+//     // ❌ Validate email & items
+//     if (!email || !items || !Array.isArray(items) || items.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Email and items are required, and items must be a non-empty array",
+//       });
 //     }
+
+//     // ✅ Call ProductService
+//     const order = await ProductService.createOrder(req.body);
+
+//     res.status(201).json({ success: true, message: "Order placed successfully", data: order });
+//   } catch (error) {
+//     console.error("Create Order Error:", error);
+//     res.status(500).json({ success: false, message: error.message });
 //   }
+// }
+
 
 //   static async getUserOrders(req, res) {
 //     try {
@@ -154,14 +194,6 @@
 
 
 
-
-
-
-
-
-
-
-
 const ProductService = require("./ProductService");
 const User = require("./userSchema");
 const bcrypt = require("bcryptjs");
@@ -179,12 +211,17 @@ class ProductController {
       }
 
       const existingUser = await User.findOne({ email });
-      if (existingUser) return res.status(400).json({ success: false, message: "Email already registered" });
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: "Email already registered" });
+      }
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const user = await User.create({
-        name, email, phone, password: hashedPassword,
+        name,
+        email,
+        phone,
+        password: hashedPassword,
         address: { ...address, pincode: String(address.pincode) },
       });
 
@@ -211,32 +248,38 @@ class ProductController {
 
       const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-      res.json({ success: true, message: "Login successful", token, user });
+      res.status(200).json({ success: true, message: "Login successful", token, user });
     } catch (error) {
       console.error("Login Error:", error);
       res.status(500).json({ success: false, message: "Login failed" });
     }
   }
 
-  // ================= PRODUCTS =================
+  // ================= GET PRODUCTS =================
   static async getAll(type, req, res) {
     try {
+      // ✅ Validate type
+      if (!["veg", "nonveg", "drink"].includes(type)) {
+        return res.status(400).json({ success: false, message: "Invalid product type" });
+      }
+
       const products = await ProductService.getAll(type);
       res.status(200).json({ success: true, data: products });
     } catch (error) {
-      console.error("Get Products Error:", error);
+      console.error(`Get ${type} Products Error:`, error);
       res.status(500).json({ success: false, message: "Failed to fetch products" });
     }
   }
 
+  // ================= SAVE / DELETE PRODUCTS =================
   static async saveOne(req, res) {
     try {
-      // ❌ Prevent saving orders via saveOne
-      if (req.params.type === "order") {
-        return res.status(400).json({ success: false, message: "Orders must be created using createOrder() API" });
+      const { type } = req.params;
+      if (type === "order") {
+        return res.status(400).json({ success: false, message: "Orders must be created using createOrder API" });
       }
 
-      const result = await ProductService.saveOne(req.params.type, req.body);
+      const result = await ProductService.saveOne(type, req.body);
       res.status(201).json({ success: true, data: result });
     } catch (error) {
       console.error("Save One Error:", error);
@@ -246,12 +289,12 @@ class ProductController {
 
   static async saveAll(req, res) {
     try {
-      // ❌ Prevent saving orders via saveAll
-      if (req.params.type === "order") {
-        return res.status(400).json({ success: false, message: "Orders must be created using createOrder() API" });
+      const { type } = req.params;
+      if (type === "order") {
+        return res.status(400).json({ success: false, message: "Orders must be created using createOrder API" });
       }
 
-      const result = await ProductService.saveAll(req.params.type, req.body);
+      const result = await ProductService.saveAll(type, req.body);
       res.status(201).json({ success: true, data: result });
     } catch (error) {
       console.error("Save All Error:", error);
@@ -261,8 +304,9 @@ class ProductController {
 
   static async deleteOne(req, res) {
     try {
-      const result = await ProductService.deleteOne(req.params.type, req.params.id);
-      res.json({ success: true, data: result });
+      const { type, id } = req.params;
+      const result = await ProductService.deleteOne(type, id);
+      res.status(200).json({ success: true, data: result });
     } catch (error) {
       console.error("Delete One Error:", error);
       res.status(500).json({ success: false, message: error.message });
@@ -271,8 +315,9 @@ class ProductController {
 
   static async deleteAll(req, res) {
     try {
-      const result = await ProductService.deleteAll(req.params.type);
-      res.json({ success: true, deletedCount: result.deletedCount });
+      const { type } = req.params;
+      const result = await ProductService.deleteAll(type);
+      res.status(200).json({ success: true, deletedCount: result.deletedCount });
     } catch (error) {
       console.error("Delete All Error:", error);
       res.status(500).json({ success: false, message: error.message });
@@ -280,48 +325,32 @@ class ProductController {
   }
 
   // ================= ORDERS =================
-  // static async createOrder(req, res) {
-  //   try {
-  //     const order = await ProductService.createOrder(req.body);
-  //     res.status(201).json({ success: true, message: "Order placed successfully", data: order });
-  //   } catch (error) {
-  //     console.error("Create Order Error:", error);
-  //     res.status(500).json({ success: false, message: error.message });
-  //   }
-  // }
-
-
-
   static async createOrder(req, res) {
-  try {
-    // 🧪 DEBUG: log incoming request
-    console.log("REQ BODY:", req.body);
+    try {
+      const { email, items } = req.body;
 
-    const { email, items } = req.body;
+      if (!email || !items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Email and items are required, and items must be a non-empty array",
+        });
+      }
 
-    // ❌ Validate email & items
-    if (!email || !items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and items are required, and items must be a non-empty array",
-      });
+      const order = await ProductService.createOrder(req.body);
+      res.status(201).json({ success: true, message: "Order placed successfully", data: order });
+    } catch (error) {
+      console.error("Create Order Error:", error);
+      res.status(500).json({ success: false, message: error.message });
     }
-
-    // ✅ Call ProductService
-    const order = await ProductService.createOrder(req.body);
-
-    res.status(201).json({ success: true, message: "Order placed successfully", data: order });
-  } catch (error) {
-    console.error("Create Order Error:", error);
-    res.status(500).json({ success: false, message: error.message });
   }
-}
-
 
   static async getUserOrders(req, res) {
     try {
-      const orders = await ProductService.getUserOrders(req.params.email);
-      res.json({ success: true, data: orders });
+      const { email } = req.params;
+      if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+      const orders = await ProductService.getUserOrders(email);
+      res.status(200).json({ success: true, data: orders });
     } catch (error) {
       console.error("Get User Orders Error:", error);
       res.status(500).json({ success: false, message: error.message });
@@ -331,7 +360,7 @@ class ProductController {
   static async getAllOrders(req, res) {
     try {
       const orders = await ProductService.getAllOrders();
-      res.json({ success: true, data: orders });
+      res.status(200).json({ success: true, data: orders });
     } catch (error) {
       console.error("Get All Orders Error:", error);
       res.status(500).json({ success: false, message: error.message });
@@ -341,7 +370,7 @@ class ProductController {
   static async deleteAllOrders(req, res) {
     try {
       const result = await ProductService.deleteAllOrders();
-      res.json({ success: true, deletedCount: result.deletedCount });
+      res.status(200).json({ success: true, deletedCount: result.deletedCount });
     } catch (error) {
       console.error("Delete All Orders Error:", error);
       res.status(500).json({ success: false, message: error.message });

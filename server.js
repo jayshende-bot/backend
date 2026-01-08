@@ -43,9 +43,6 @@
 //   .catch((err) => {
 //     console.error("❌ MongoDB Connection Failed:", err);
 //   });
-
-
-
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -55,27 +52,35 @@ const productRoutes = require("./productroutes");
 
 const app = express();
 
-// middleware
+// ================= MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// static files
+// ================= STATIC FILES =================
 app.use("/images", express.static(path.join(__dirname, "images")));
 
-// health check
+// ================= HEALTH CHECK =================
 app.get("/", (req, res) => {
-  res.send("API running");
+  res.send("API running 🚀");
 });
 
-// 🔥 CONNECT DB BEFORE ROUTES (SERVERLESS SAFE)
-app.use(
-  "/api/v1/products",
-  async (req, res, next) => {
-    await connectDB();
-    next();
-  },
-  productRoutes
-);
+// ================= CONNECT DB IMMEDIATELY =================
+connectDB()
+  .then(() => console.log("✅ MongoDB connected at startup"))
+  .catch(err => console.error("❌ MongoDB connection failed at startup:", err));
+
+// ================= ROUTES =================
+app.use("/api/v1/products", productRoutes);
+
+// ================= GLOBAL ERROR HANDLER =================
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ message: "Something went wrong!" });
+});
+
+// ================= START SERVER =================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT} 🚀`));
 
 module.exports = app;
