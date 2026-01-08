@@ -160,6 +160,8 @@
 
 
 
+
+
 const ProductService = require("./ProductService");
 const User = require("./userSchema");
 const bcrypt = require("bcryptjs");
@@ -278,15 +280,43 @@ class ProductController {
   }
 
   // ================= ORDERS =================
+  // static async createOrder(req, res) {
+  //   try {
+  //     const order = await ProductService.createOrder(req.body);
+  //     res.status(201).json({ success: true, message: "Order placed successfully", data: order });
+  //   } catch (error) {
+  //     console.error("Create Order Error:", error);
+  //     res.status(500).json({ success: false, message: error.message });
+  //   }
+  // }
+
+
+
   static async createOrder(req, res) {
-    try {
-      const order = await ProductService.createOrder(req.body);
-      res.status(201).json({ success: true, message: "Order placed successfully", data: order });
-    } catch (error) {
-      console.error("Create Order Error:", error);
-      res.status(500).json({ success: false, message: error.message });
+  try {
+    // 🧪 DEBUG: log incoming request
+    console.log("REQ BODY:", req.body);
+
+    const { email, items } = req.body;
+
+    // ❌ Validate email & items
+    if (!email || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and items are required, and items must be a non-empty array",
+      });
     }
+
+    // ✅ Call ProductService
+    const order = await ProductService.createOrder(req.body);
+
+    res.status(201).json({ success: true, message: "Order placed successfully", data: order });
+  } catch (error) {
+    console.error("Create Order Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
+}
+
 
   static async getUserOrders(req, res) {
     try {
