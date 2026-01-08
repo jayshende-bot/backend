@@ -46,48 +46,36 @@
 
 
 
-
-
 require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
-
+const connectDB = require("./db");
 const productRoutes = require("./productroutes");
 
 const app = express();
 
-// ================================
-// MIDDLEWARE
-// ================================
+// middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ================================
-// STATIC FILES
-// ================================
+// static files
 app.use("/images", express.static(path.join(__dirname, "images")));
 
-// ================================
-// ROUTES (🔥 MOVE OUTSIDE DB CONNECT)
-// ================================
-app.use("/api/v1/products", productRoutes);
+// health check
+app.get("/", (req, res) => {
+  res.send("API running");
+});
 
-// ================================
-// DATABASE CONNECTION (🔥 NO app.listen)
-// ================================
-mongoose
-  .connect(process.env.MONGO_URL)
-  .then(() => {
-    console.log("✅ MongoDB Connected");
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB Connection Failed:", err);
-  });
+// 🔥 CONNECT DB BEFORE ROUTES (SERVERLESS SAFE)
+app.use(
+  "/api/v1/products",
+  async (req, res, next) => {
+    await connectDB();
+    next();
+  },
+  productRoutes
+);
 
-// ================================
-// EXPORT APP (🔥 REQUIRED FOR VERCEL)
-// ================================
 module.exports = app;
