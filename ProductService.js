@@ -111,16 +111,11 @@
 
 // module.exports = ProductService;
 
-
-
 const mongoose = require("mongoose");
 const connectDB = require("./db");
-
 const { Veg, Nonveg, Drink, Order } = require("./schema");
 
-// ==========================
-// MAP TYPE → MODEL
-// ==========================
+/* MAP TYPE → MODEL */
 const collectionMap = {
   veg: Veg,
   nonveg: Nonveg,
@@ -130,62 +125,74 @@ const collectionMap = {
 
 class ProductService {
 
-  // ==========================
-  // GET MODEL
-  // ==========================
+  /* GET MODEL SAFELY */
   static getModel(type) {
-    if (!type) throw new Error("Type is required");
+    if (!type) {
+      throw new Error("Type is required");
+    }
+
     const key = type.toLowerCase();
     const model = collectionMap[key];
-    if (!model) throw new Error(`Invalid type: ${type}`);
+
+    if (!model) {
+      throw new Error(`Invalid product type: ${type}`);
+    }
+
     return model;
   }
 
-  // ==========================
-  // PRODUCTS
-  // ==========================
+  /* ================= PRODUCTS ================= */
+
   static async getAll(type) {
-    await connectDB(); // ✅ REQUIRED
-    const model = this.getModel(type);
-    return await model.find().lean();
+    await connectDB();
+    const Model = this.getModel(type);
+    return await Model.find().sort({ createdAt: -1 }).lean();
   }
 
   static async saveOne(type, data) {
-    await connectDB(); // ✅ REQUIRED
-    if (type === "order") throw new Error("Use createOrder API");
-    const model = this.getModel(type);
-    return await model.create(data);
+    await connectDB();
+    const Model = this.getModel(type);
+    return await Model.create(data);
   }
 
   static async saveAll(type, dataArray) {
-    await connectDB(); // ✅ REQUIRED
-    if (!Array.isArray(dataArray)) throw new Error("Data must be array");
-    const model = this.getModel(type);
-    return await model.insertMany(dataArray);
+    await connectDB();
+
+    if (!Array.isArray(dataArray)) {
+      throw new Error("Data must be an array");
+    }
+
+    const Model = this.getModel(type);
+    return await Model.insertMany(dataArray);
   }
 
   static async deleteOne(type, id) {
-    await connectDB(); // ✅ REQUIRED
+    await connectDB();
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid ID");
+      throw new Error("Invalid Mongo ID");
     }
-    const model = this.getModel(type);
-    const deleted = await model.findByIdAndDelete(id);
-    if (!deleted) throw new Error("Item not found");
+
+    const Model = this.getModel(type);
+    const deleted = await Model.findByIdAndDelete(id);
+
+    if (!deleted) {
+      throw new Error("Item not found");
+    }
+
     return deleted;
   }
 
   static async deleteAll(type) {
-    await connectDB(); // ✅ REQUIRED
-    const model = this.getModel(type);
-    return await model.deleteMany({});
+    await connectDB();
+    const Model = this.getModel(type);
+    return await Model.deleteMany({});
   }
 
-  // ==========================
-  // ORDERS
-  // ==========================
+  /* ================= ORDERS ================= */
+
   static async createOrder(data) {
-    await connectDB(); // ✅ REQUIRED
+    await connectDB();
 
     const { email, items } = data;
     if (!email || !Array.isArray(items) || items.length === 0) {
@@ -210,18 +217,18 @@ class ProductService {
   }
 
   static async getAllOrders() {
-    await connectDB(); // ✅ REQUIRED
+    await connectDB();
     return await Order.find().sort({ createdAt: -1 }).lean();
   }
 
   static async getUserOrders(email) {
-    await connectDB(); // ✅ REQUIRED
+    await connectDB();
     if (!email) throw new Error("Email required");
     return await Order.find({ email }).sort({ createdAt: -1 }).lean();
   }
 
   static async deleteAllOrders() {
-    await connectDB(); // ✅ REQUIRED
+    await connectDB();
     return await Order.deleteMany({});
   }
 }

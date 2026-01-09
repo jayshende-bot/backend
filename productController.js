@@ -800,133 +800,163 @@
 // module.exports = ProductController;
 
 
-
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const connectDB = require("./db");
 const ProductService = require("./ProductService");
 const User = require("./userSchema");
-const { Order } = require("./schema");
 
 class ProductController {
 
+  /* ================= AUTH ================= */
+
   static async register(req, res) {
-    await connectDB();
+    try {
+      const { name, email, password, phone, address } = req.body;
 
-    const { name, email, password, phone, address } = req.body;
+      if (!process.env.JWT_SECRET) {
+        return res.status(500).json({ message: "JWT_SECRET missing" });
+      }
 
-    if (!process.env.JWT_SECRET) {
-      return res.status(500).json({ message: "JWT_SECRET missing" });
+      const existing = await User.findOne({ email });
+      if (existing) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      const hashed = await bcrypt.hash(password, 10);
+
+      const user = await User.create({
+        name,
+        email,
+        phone,
+        password: hashed,
+        address
+      });
+
+      const token = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      res.status(201).json({ success: true, token, user });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
     }
-
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: "Email already registered" });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      name,
-      email,
-      phone,
-      password: hashed,
-      address
-    });
-
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.status(201).json({ success: true, token, user });
   }
 
   static async login(req, res) {
-    await connectDB();
+    try {
+      const { email, password } = req.body;
 
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      const match = await bcrypt.compare(password, user.password);
+      if (!match) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const token = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      res.json({ success: true, token, user });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
     }
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({ success: true, token, user });
   }
 
+  /* ================= PRODUCTS ================= */
+
   static async getAll(req, res) {
-    await connectDB();
-
-    const { type } = req.params;
-    if (!["veg", "nonveg", "drink"].includes(type)) {
-      return res.status(400).json({ message: "Invalid type" });
+    try {
+      const { type } = req.params;
+      const data = await ProductService.getAll(type);
+      res.json({ success: true, data });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
     }
-
-    const data = await ProductService.getAll(type);
-    res.json({ success: true, data });
   }
 
   static async saveOne(req, res) {
-    await connectDB();
-    const data = await ProductService.saveOne(req.params.type, req.body);
-    res.status(201).json({ success: true, data });
+    try {
+      const data = await ProductService.saveOne(req.params.type, req.body);
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
   }
 
   static async saveAll(req, res) {
-    await connectDB();
-    const data = await ProductService.saveAll(req.params.type, req.body);
-    res.status(201).json({ success: true, data });
+    try {
+      const data = await ProductService.saveAll(req.params.type, req.body);
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
   }
 
   static async deleteOne(req, res) {
-    await connectDB();
-    const data = await ProductService.deleteOne(req.params.type, req.params.id);
-    res.json({ success: true, data });
+    try {
+      const data = await ProductService.deleteOne(
+        req.params.type,
+        req.params.id
+      );
+      res.json({ success: true, data });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
   }
 
   static async deleteAll(req, res) {
-    await connectDB();
-    const result = await ProductService.deleteAll(req.params.type);
-    res.json({ success: true, deleted: result.deletedCount });
+    try {
+      const result = await ProductService.deleteAll(req.params.type);
+      res.json({ success: true, deleted: result.deletedCount });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
   }
 
-  /* ORDERS */
+  /* ================= ORDERS ================= */
+
   static async createOrder(req, res) {
-    await connectDB();
-    const order = await Order.create(req.body);
-    res.status(201).json({ success: true, order });
+    try {
+      const order = await ProductService.createOrder(req.body);
+      res.status(201).json({ success: true, order });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
   }
 
   static async getAllOrders(req, res) {
-    await connectDB();
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.json({ success: true, orders });
+    try {
+      const orders = await ProductService.getAllOrders();
+      res.json({ success: true, orders });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
   }
 
   static async getUserOrders(req, res) {
-    await connectDB();
-    const orders = await Order.find({ email: req.params.email });
-    res.json({ success: true, orders });
+    try {
+      const orders = await ProductService.getUserOrders(req.params.email);
+      res.json({ success: true, orders });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
   }
 
   static async deleteAllOrders(req, res) {
-    await connectDB();
-    await Order.deleteMany({});
-    res.json({ success: true });
+    try {
+      await ProductService.deleteAllOrders();
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
   }
 }
 
