@@ -797,13 +797,15 @@
 //   }
 // }
 
-// module.exports = ProductController;
+// module.exports = ProductController;const bcrypt = require("bcryptjs");
 
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const connectDB = require("./db");
 const ProductService = require("./ProductService");
 const User = require("./userSchema");
+const { Order } = require("./schema");
 
 class ProductController {
 
@@ -811,15 +813,17 @@ class ProductController {
 
   static async register(req, res) {
     try {
+      await connectDB();
+
       const { name, email, password, phone, address } = req.body;
 
       if (!process.env.JWT_SECRET) {
         return res.status(500).json({ message: "JWT_SECRET missing" });
       }
 
-      const existing = await User.findOne({ email });
-      if (existing) {
-        return res.status(400).json({ message: "Email already registered" });
+      const exists = await User.findOne({ email });
+      if (exists) {
+        return res.status(400).json({ message: "Email already exists" });
       }
 
       const hashed = await bcrypt.hash(password, 10);
@@ -838,14 +842,26 @@ class ProductController {
         { expiresIn: "7d" }
       );
 
-      res.status(201).json({ success: true, token, user });
+      const safeUser = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address
+      };
+
+      res.status(201).json({ success: true, token, user: safeUser });
+
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      console.error("REGISTER ERROR:", err.message);
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 
   static async login(req, res) {
     try {
+      await connectDB();
+
       const { email, password } = req.body;
 
       const user = await User.findOne({ email });
@@ -864,9 +880,19 @@ class ProductController {
         { expiresIn: "7d" }
       );
 
-      res.json({ success: true, token, user });
+      const safeUser = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address
+      };
+
+      res.json({ success: true, token, user: safeUser });
+
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      console.error("LOGIN ERROR:", err.message);
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 
@@ -874,11 +900,18 @@ class ProductController {
 
   static async getAll(req, res) {
     try {
-      const { type } = req.params;
+      const type = req.params.type?.trim().toLowerCase();
       const data = await ProductService.getAll(type);
-      res.json({ success: true, data });
+
+      res.status(200).json({
+        success: true,
+        count: data.length,
+        data
+      });
+
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      console.error("GET PRODUCTS ERROR:", err.message);
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
@@ -887,7 +920,7 @@ class ProductController {
       const data = await ProductService.saveOne(req.params.type, req.body);
       res.status(201).json({ success: true, data });
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
@@ -896,19 +929,16 @@ class ProductController {
       const data = await ProductService.saveAll(req.params.type, req.body);
       res.status(201).json({ success: true, data });
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
   static async deleteOne(req, res) {
     try {
-      const data = await ProductService.deleteOne(
-        req.params.type,
-        req.params.id
-      );
+      const data = await ProductService.deleteOne(req.params.type, req.params.id);
       res.json({ success: true, data });
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
@@ -917,7 +947,7 @@ class ProductController {
       const result = await ProductService.deleteAll(req.params.type);
       res.json({ success: true, deleted: result.deletedCount });
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
@@ -928,7 +958,7 @@ class ProductController {
       const order = await ProductService.createOrder(req.body);
       res.status(201).json({ success: true, order });
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
@@ -937,7 +967,7 @@ class ProductController {
       const orders = await ProductService.getAllOrders();
       res.json({ success: true, orders });
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 
@@ -946,7 +976,7 @@ class ProductController {
       const orders = await ProductService.getUserOrders(req.params.email);
       res.json({ success: true, orders });
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
@@ -955,7 +985,7 @@ class ProductController {
       await ProductService.deleteAllOrders();
       res.json({ success: true });
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 }

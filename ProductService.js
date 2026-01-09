@@ -111,34 +111,34 @@
 
 // module.exports = ProductService;
 
+
+
 const mongoose = require("mongoose");
 const connectDB = require("./db");
 const { Veg, Nonveg, Drink, Order } = require("./schema");
 
-/* MAP TYPE → MODEL */
+/* ================= MAP TYPE → MODEL ================= */
 const collectionMap = {
   veg: Veg,
   nonveg: Nonveg,
-  drink: Drink,
-  order: Order
+  drink: Drink
 };
 
 class ProductService {
 
-  /* GET MODEL SAFELY */
+  /* ================= SAFE MODEL RESOLVER ================= */
   static getModel(type) {
-    if (!type) {
-      throw new Error("Type is required");
+    if (!type || typeof type !== "string") {
+      throw new Error("Product type is required");
     }
 
-    const key = type.toLowerCase();
-    const model = collectionMap[key];
+    const key = type.trim().toLowerCase(); // ✅ IMPORTANT FIX
 
-    if (!model) {
-      throw new Error(`Invalid product type: ${type}`);
+    if (!collectionMap[key]) {
+      throw new Error(`Invalid product type: ${key}`);
     }
 
-    return model;
+    return collectionMap[key];
   }
 
   /* ================= PRODUCTS ================= */
@@ -146,13 +146,13 @@ class ProductService {
   static async getAll(type) {
     await connectDB();
     const Model = this.getModel(type);
-    return await Model.find().sort({ createdAt: -1 }).lean();
+    return Model.find().sort({ createdAt: -1 }).lean();
   }
 
   static async saveOne(type, data) {
     await connectDB();
     const Model = this.getModel(type);
-    return await Model.create(data);
+    return Model.create(data);
   }
 
   static async saveAll(type, dataArray) {
@@ -163,7 +163,7 @@ class ProductService {
     }
 
     const Model = this.getModel(type);
-    return await Model.insertMany(dataArray);
+    return Model.insertMany(dataArray);
   }
 
   static async deleteOne(type, id) {
@@ -186,7 +186,7 @@ class ProductService {
   static async deleteAll(type) {
     await connectDB();
     const Model = this.getModel(type);
-    return await Model.deleteMany({});
+    return Model.deleteMany({});
   }
 
   /* ================= ORDERS ================= */
@@ -195,19 +195,20 @@ class ProductService {
     await connectDB();
 
     const { email, items } = data;
+
     if (!email || !Array.isArray(items) || items.length === 0) {
       throw new Error("Email and items are required");
     }
 
     const subtotal = items.reduce(
-      (sum, i) => sum + (i.price || 0) * (i.quantity || 0),
+      (sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1),
       0
     );
 
     const gst = +(subtotal * 0.05).toFixed(2);
     const finalTotal = +(subtotal + gst).toFixed(2);
 
-    return await Order.create({
+    return Order.create({
       email,
       items,
       subtotal,
@@ -218,18 +219,22 @@ class ProductService {
 
   static async getAllOrders() {
     await connectDB();
-    return await Order.find().sort({ createdAt: -1 }).lean();
+    return Order.find().sort({ createdAt: -1 }).lean();
   }
 
   static async getUserOrders(email) {
     await connectDB();
-    if (!email) throw new Error("Email required");
-    return await Order.find({ email }).sort({ createdAt: -1 }).lean();
+
+    if (!email) {
+      throw new Error("Email is required");
+    }
+
+    return Order.find({ email }).sort({ createdAt: -1 }).lean();
   }
 
   static async deleteAllOrders() {
     await connectDB();
-    return await Order.deleteMany({});
+    return Order.deleteMany({});
   }
 }
 

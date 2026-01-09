@@ -45,35 +45,31 @@
 
 // module.exports = router;const express = require("express");
 
-
 const express = require("express");
 const router = express.Router();
-const ProductController = require("./productController");
+const ProductController = require("./ProductController");
 const authMiddleware = require("./authentication");
 
-const asyncHandler = fn => (req, res, next) =>
-  Promise.resolve(fn(req, res, next)).catch(next);
+// PUBLIC
+router.get("/:type", ProductController.getAll);
 
-/* AUTH */
-router.post("/register", asyncHandler(ProductController.register));
-router.post("/login", asyncHandler(ProductController.login));
+// AUTH
+router.post("/register", ProductController.register);
+router.post("/login", ProductController.login);
 
-/* PUBLIC PRODUCTS */
-router.get("/:type", asyncHandler(ProductController.getAll));
-
-/* PROTECTED */
+// PROTECTED
 router.use(authMiddleware);
 
-/* ORDERS */
-router.post("/orders", asyncHandler(ProductController.createOrder));
-router.get("/orders", asyncHandler(ProductController.getAllOrders));
-router.get("/orders/user/:email", asyncHandler(ProductController.getUserOrders));
-router.delete("/orders", asyncHandler(ProductController.deleteAllOrders));
+// ORDERS
+router.post("/orders", ProductController.createOrder);
+router.get("/orders", ProductController.getAllOrders);
+router.get("/orders/user/:email", ProductController.getUserOrders);
+router.delete("/orders", ProductController.deleteAllOrders);
 
-/* ADMIN PRODUCTS */
-router.post("/:type", asyncHandler(ProductController.saveOne));
-router.post("/:type/bulk", asyncHandler(ProductController.saveAll));
-router.delete("/:type/:id", asyncHandler(ProductController.deleteOne));
-router.delete("/:type", asyncHandler(ProductController.deleteAll));
+// ADMIN PRODUCTS
+router.post("/:type", ProductController.saveOne);
+router.post("/:type/bulk", ProductController.saveAll);
+router.delete("/:type/:id", ProductController.deleteOne);
+router.delete("/:type", ProductController.deleteAll);
 
 module.exports = router;
