@@ -43,9 +43,7 @@
 // router.delete("/:type/:id", ProductController.deleteOne);
 // router.delete("/:type", ProductController.deleteAll);
 
-// module.exports = router;
-
-
+// module.exports = router;const express = require("express");
 
 
 const express = require("express");
@@ -53,47 +51,29 @@ const router = express.Router();
 const ProductController = require("./productController");
 const authMiddleware = require("./authentication");
 
-// ================================
-// HELPER: Async wrapper for routes
-// ================================
 const asyncHandler = fn => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-// ================================
-// PUBLIC AUTH ROUTES
-// ================================
+/* AUTH */
 router.post("/register", asyncHandler(ProductController.register));
 router.post("/login", asyncHandler(ProductController.login));
 
-// ================================
-// PUBLIC PRODUCT ROUTES
-// ================================
-router.get("/veg", asyncHandler((req, res) => ProductController.getAll("veg", req, res)));
-router.get("/nonveg", asyncHandler((req, res) => ProductController.getAll("nonveg", req, res)));
-router.get("/drink", asyncHandler((req, res) => ProductController.getAll("drink", req, res)));
+/* PUBLIC PRODUCTS */
+router.get("/:type", asyncHandler(ProductController.getAll));
 
-// ================================
-// APPLY AUTH MIDDLEWARE
-// ================================
+/* PROTECTED */
 router.use(authMiddleware);
 
-// ================================
-// PROTECTED ORDER ROUTES
-// ================================
+/* ORDERS */
 router.post("/orders", asyncHandler(ProductController.createOrder));
-router.get("/orders/user/:email", asyncHandler(ProductController.getUserOrders));
 router.get("/orders", asyncHandler(ProductController.getAllOrders));
+router.get("/orders/user/:email", asyncHandler(ProductController.getUserOrders));
 router.delete("/orders", asyncHandler(ProductController.deleteAllOrders));
 
-// ================================
-// ADMIN PRODUCT ROUTES
-// ================================
+/* ADMIN PRODUCTS */
 router.post("/:type", asyncHandler(ProductController.saveOne));
 router.post("/:type/bulk", asyncHandler(ProductController.saveAll));
 router.delete("/:type/:id", asyncHandler(ProductController.deleteOne));
 router.delete("/:type", asyncHandler(ProductController.deleteAll));
 
-// ================================
-// EXPORT
-// ================================
 module.exports = router;

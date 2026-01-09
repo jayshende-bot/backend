@@ -1,21 +1,21 @@
 const mongoose = require("mongoose");
 
-let isConnected = false; // track connection for serverless
+let cached = global.mongoose;
+if (!cached) cached = global.mongoose = { conn: null, promise: null };
 
 const connectDB = async () => {
-  if (isConnected) {
-    console.log("✅ MongoDB already connected");
-    return;
+  if (cached.conn) return cached.conn;
+
+  if (!process.env.MONGODB_URI) {
+    throw new Error("MONGODB_URI not defined");
   }
 
-  try {
-    const db = await mongoose.connect(process.env.MONGO_URI); // <-- remove options
-    isConnected = db.connections[0].readyState === 1;
-    console.log("✅ MongoDB Connected");
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
-    throw error;
-  }
+  cached.promise = mongoose.connect(process.env.MONGODB_URI, {
+    bufferCommands: false
+  });
+
+  cached.conn = await cached.promise;
+  return cached.conn;
 };
 
 module.exports = connectDB;
