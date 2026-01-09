@@ -798,14 +798,11 @@
 // }
 
 // module.exports = ProductController;const bcrypt = require("bcryptjs");
-
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const connectDB = require("./db");
 const ProductService = require("./ProductService");
 const User = require("./userSchema");
-const { Order } = require("./schema");
 
 class ProductController {
 
@@ -818,7 +815,7 @@ class ProductController {
       const { name, email, password, phone, address } = req.body;
 
       if (!process.env.JWT_SECRET) {
-        return res.status(500).json({ message: "JWT_SECRET missing" });
+        throw new Error("JWT_SECRET missing");
       }
 
       const exists = await User.findOne({ email });
@@ -833,7 +830,7 @@ class ProductController {
         email,
         phone,
         password: hashed,
-        address
+        address,
       });
 
       const token = jwt.sign(
@@ -842,18 +839,20 @@ class ProductController {
         { expiresIn: "7d" }
       );
 
-      const safeUser = {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address
-      };
-
-      res.status(201).json({ success: true, token, user: safeUser });
+      res.status(201).json({
+        success: true,
+        token,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          address: user.address,
+        },
+      });
 
     } catch (err) {
-      console.error("REGISTER ERROR:", err.message);
+      console.error("REGISTER ERROR:", err);
       res.status(500).json({ success: false, message: err.message });
     }
   }
@@ -863,6 +862,10 @@ class ProductController {
       await connectDB();
 
       const { email, password } = req.body;
+
+      if (!process.env.JWT_SECRET) {
+        throw new Error("JWT_SECRET missing");
+      }
 
       const user = await User.findOne({ email });
       if (!user) {
@@ -880,18 +883,20 @@ class ProductController {
         { expiresIn: "7d" }
       );
 
-      const safeUser = {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address
-      };
-
-      res.json({ success: true, token, user: safeUser });
+      res.json({
+        success: true,
+        token,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          address: user.address,
+        },
+      });
 
     } catch (err) {
-      console.error("LOGIN ERROR:", err.message);
+      console.error("LOGIN ERROR:", err);
       res.status(500).json({ success: false, message: err.message });
     }
   }
@@ -900,23 +905,26 @@ class ProductController {
 
   static async getAll(req, res) {
     try {
+      await connectDB();
+
       const type = req.params.type?.trim().toLowerCase();
       const data = await ProductService.getAll(type);
 
-      res.status(200).json({
+      res.json({
         success: true,
         count: data.length,
-        data
+        data,
       });
 
     } catch (err) {
-      console.error("GET PRODUCTS ERROR:", err.message);
-      res.status(400).json({ success: false, message: err.message });
+      console.error("GET PRODUCTS ERROR:", err);
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 
   static async saveOne(req, res) {
     try {
+      await connectDB();
       const data = await ProductService.saveOne(req.params.type, req.body);
       res.status(201).json({ success: true, data });
     } catch (err) {
@@ -926,6 +934,7 @@ class ProductController {
 
   static async saveAll(req, res) {
     try {
+      await connectDB();
       const data = await ProductService.saveAll(req.params.type, req.body);
       res.status(201).json({ success: true, data });
     } catch (err) {
@@ -935,6 +944,7 @@ class ProductController {
 
   static async deleteOne(req, res) {
     try {
+      await connectDB();
       const data = await ProductService.deleteOne(req.params.type, req.params.id);
       res.json({ success: true, data });
     } catch (err) {
@@ -944,6 +954,7 @@ class ProductController {
 
   static async deleteAll(req, res) {
     try {
+      await connectDB();
       const result = await ProductService.deleteAll(req.params.type);
       res.json({ success: true, deleted: result.deletedCount });
     } catch (err) {
@@ -955,6 +966,7 @@ class ProductController {
 
   static async createOrder(req, res) {
     try {
+      await connectDB();
       const order = await ProductService.createOrder(req.body);
       res.status(201).json({ success: true, order });
     } catch (err) {
@@ -964,6 +976,7 @@ class ProductController {
 
   static async getAllOrders(req, res) {
     try {
+      await connectDB();
       const orders = await ProductService.getAllOrders();
       res.json({ success: true, orders });
     } catch (err) {
@@ -973,6 +986,7 @@ class ProductController {
 
   static async getUserOrders(req, res) {
     try {
+      await connectDB();
       const orders = await ProductService.getUserOrders(req.params.email);
       res.json({ success: true, orders });
     } catch (err) {
@@ -982,6 +996,7 @@ class ProductController {
 
   static async deleteAllOrders(req, res) {
     try {
+      await connectDB();
       await ProductService.deleteAllOrders();
       res.json({ success: true });
     } catch (err) {

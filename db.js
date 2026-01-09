@@ -1,20 +1,28 @@
 const mongoose = require("mongoose");
 
 let cached = global.mongoose;
-if (!cached) cached = global.mongoose = { conn: null, promise: null };
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
 const connectDB = async () => {
+  // ✅ reuse existing connection
   if (cached.conn) return cached.conn;
 
   if (!process.env.MONGODB_URI) {
-    throw new Error("MONGODB_URI not defined");
+    throw new Error("❌ MONGODB_URI not defined");
   }
 
-  cached.promise = mongoose.connect(process.env.MONGODB_URI, {
-    bufferCommands: false
-  });
+  // ✅ create connection only once
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(process.env.MONGODB_URI, {
+      bufferCommands: false,
+    });
+  }
 
   cached.conn = await cached.promise;
+  console.log("✅ MongoDB connected");
   return cached.conn;
 };
 

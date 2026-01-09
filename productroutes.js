@@ -41,32 +41,28 @@
 // router.post("/:type", ProductController.saveOne);
 // router.post("/:type/bulk", ProductController.saveAll);
 // router.delete("/:type/:id", ProductController.deleteOne);
-// router.delete("/:type", ProductController.deleteAll);
-
-// module.exports = router;const express = require("express");
-
-const express = require("express");
+// router.delete("/:type", Productconst express = require("express");
 const router = express.Router();
 const ProductController = require("./ProductController");
 const authMiddleware = require("./authentication");
 
-// PUBLIC
-router.get("/:type", ProductController.getAll);
-
-// AUTH
+/* ================= PUBLIC AUTH ================= */
 router.post("/register", ProductController.register);
 router.post("/login", ProductController.login);
 
-// PROTECTED
+/* ================= PUBLIC PRODUCTS ================= */
+router.get("/:type", ProductController.getAll);
+
+/* ================= PROTECTED ROUTES ================= */
 router.use(authMiddleware);
 
-// ORDERS
+/* ================= ORDERS ================= */
 router.post("/orders", ProductController.createOrder);
 router.get("/orders", ProductController.getAllOrders);
 router.get("/orders/user/:email", ProductController.getUserOrders);
 router.delete("/orders", ProductController.deleteAllOrders);
 
-// ADMIN PRODUCTS
+/* ================= ADMIN PRODUCTS ================= */
 router.post("/:type", ProductController.saveOne);
 router.post("/:type/bulk", ProductController.saveAll);
 router.delete("/:type/:id", ProductController.deleteOne);
