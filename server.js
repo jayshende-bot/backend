@@ -44,6 +44,8 @@
 //     console.error("❌ MongoDB Connection Failed:", err);
 //   });
 // require("dotenv").config();
+
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -51,18 +53,14 @@ const productRoutes = require("./productroutes");
 
 const app = express();
 
-/* ✅ FIXED CORS CONFIG (VERCEL + LOCALHOST SAFE) */
+/* ✅ CORS — ALLOW ALL (SAFE FOR DEV + VERCEL) */
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://frontend-your-project.vercel.app" // change this if deployed
-  ],
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-/* ✅ VERY IMPORTANT: PREFLIGHT HANDLER */
+/* ✅ PRE-FLIGHT */
 app.options("*", cors());
 
 app.use(express.json());
@@ -76,13 +74,16 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/products", productRoutes);
 
-/* 🔴 GLOBAL ERROR HANDLER */
+/* ❗ ERROR HANDLER MUST BE LAST */
 app.use((err, req, res, next) => {
-  console.error("GLOBAL ERROR:", err);
+  console.error("🔥 SERVER ERROR:", err.message);
   res.status(500).json({
     success: false,
-    message: err.message || "Internal Server Error"
+    message: err.message
   });
 });
 
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
