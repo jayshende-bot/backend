@@ -44,7 +44,6 @@
 //     console.error("❌ MongoDB Connection Failed:", err);
 //   });
 // require("dotenv").config();
-
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -52,7 +51,20 @@ const productRoutes = require("./productroutes");
 
 const app = express();
 
-app.use(cors());
+/* ✅ FIXED CORS CONFIG (VERCEL + LOCALHOST SAFE) */
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://frontend-your-project.vercel.app" // change this if deployed
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
+/* ✅ VERY IMPORTANT: PREFLIGHT HANDLER */
+app.options("*", cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -64,12 +76,12 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/products", productRoutes);
 
-/* 🔴 GLOBAL ERROR HANDLER (VERY IMPORTANT) */
+/* 🔴 GLOBAL ERROR HANDLER */
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
   res.status(500).json({
     success: false,
-    message: "Internal Server Error"
+    message: err.message || "Internal Server Error"
   });
 });
 
