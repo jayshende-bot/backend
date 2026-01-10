@@ -45,7 +45,6 @@
 //   });
 // require("dotenv").config();require("dotenv").config();
 
-
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -54,13 +53,16 @@ const connectDB = require("./db");
 const productRoutes = require("./productroutes");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
