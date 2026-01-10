@@ -41,8 +41,13 @@
 // router.post("/:type", ProductController.saveOne);
 // router.post("/:type/bulk", ProductController.saveAll);
 // router.delete("/:type/:id", ProductController.deleteOne);
-// router.delete("/:type", Productconst express = require("express");
+// router.delete("/:type", 
+// 
+
+
+const express = require("express");
 const router = express.Router();
+
 const ProductController = require("./ProductController");
 const authMiddleware = require("./authentication");
 
